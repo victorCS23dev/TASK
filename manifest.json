@@ -1,0 +1,14 @@
+{
+  "name": "Tareas Diarias",
+  "short_name": "Tareas",
+  "description": "Controla tus tareas diarias. Lo pendiente se arrastra sin duplicados.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f4f8",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

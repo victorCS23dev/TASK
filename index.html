@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="description" content="Tareas Diarias - controla tus pendientes día a día sin duplicados" />
+  <title>Tareas Diarias</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Tareas" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <h1>✓ Tareas Diarias</h1>
+        <p id="fechaLabel" class="fecha">—</p>
+      </div>
+      <div class="top-actions">
+        <button id="btnStats" class="icon-btn" title="Estadísticas" aria-label="Estadísticas">📊</button>
+        <button id="btnTheme" class="icon-btn" title="Modo oscuro" aria-label="Cambiar tema">🌙</button>
+      </div>
+    </header>
+
+    <nav class="day-nav">
+      <button id="btnPrev" class="nav-btn" aria-label="Día anterior">‹</button>
+      <div id="dayStrip" class="day-strip"></div>
+      <button id="btnNext" class="nav-btn" aria-label="Día siguiente">›</button>
+      <button id="btnToday" class="today-btn">Hoy</button>
+    </nav>
+
+    <section class="progress-card">
+      <div class="progress-top">
+        <span id="contador">0 de 0</span>
+        <span id="porcentaje">0%</span>
+      </div>
+      <div class="progress-bar"><div id="progressFill"></div></div>
+      <p id="mensaje" class="mensaje">Agrega tu primer pendiente 👇</p>
+    </section>
+
+    <form id="formAdd" class="add-box" autocomplete="off">
+      <input id="inputTask" type="text" placeholder="Nueva tarea… ej: Regar plantas" maxlength="120" enterkeyhint="done" />
+      <button type="submit" class="add-btn">＋</button>
+    </form>
+    <p id="avisoDuplicado" class="aviso hidden">⚠️ Esa tarea ya existe hoy, no se duplicó.</p>
+
+    <main>
+      <ul id="lista" class="lista"></ul>
+      <div id="vacio" class="vacio hidden">
+        <p>🎉 Día libre, sin pendientes.</p>
+        <small>Lo no completado de ayer se arrastra solo al día nuevo.</small>
+      </div>
+    </main>
+
+    <section id="panelStats" class="stats hidden">
+      <h2>Estadísticas</h2>
+      <div class="stat-grid">
+        <div class="stat"><span id="stRacha" class="stat-num">0</span><span class="stat-label">🔥 Racha (días con todo listo)</span></div>
+        <div class="stat"><span id="stTotal" class="stat-num">0</span><span class="stat-label">✅ Total completadas</span></div>
+        <div class="stat"><span id="stHoy" class="stat-num">0%</span><span class="stat-label">📅 % hoy</span></div>
+        <div class="stat"><span id="stProm" class="stat-num">0%</span><span class="stat-label">📈 Promedio 7 días</span></div>
+      </div>
+      <h3>Últimos 7 días</h3>
+      <div id="chart" class="chart"></div>
+      <button id="btnExport" class="secondary-btn">📤 Exportar historial</button>
+      <button id="btnClear" class="danger-btn">🗑 Borrar todo</button>
+    </section>
+
+    <button id="btnInstall" class="install-btn hidden">📲 Instalar app</button>
+    <footer class="foot">Tus datos se guardan solo en tu celular (offline).<br/>Lo pendiente se arrastra al día siguiente sin repetidos.</footer>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+    }
+  </script>
+</body>
+</html>
