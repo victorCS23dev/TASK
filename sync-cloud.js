@@ -55,7 +55,7 @@ const HubCloud = {
     if (!this._online || !this.key() || !this.localDirtyAt) return;
     setStatus('⏳ Subiendo cambios…');
     try {
-      const record = await this._call('PUT', { data: { days: store.days, ruta: store.ruta, activity: store.activity } });
+      const record = await this._call('PUT', { data: { days: store.days, ruta: store.ruta, activity: store.activity, fit: store.fit } });
       this.muted = true;
       store.meta.cloudUpdatedAt = record.updated_at || Date.now();
       this.localDirtyAt = 0;
@@ -90,6 +90,7 @@ const HubCloud = {
         if (remote.data.days) store.days = remote.data.days;
         if (remote.data.ruta) store.ruta = Object.assign(blankStore().ruta, remote.data.ruta);
         if (remote.data.activity) store.activity = remote.data.activity;
+        if (remote.data.fit && remote.data.fit.routine) store.fit = Object.assign(blankFit(), remote.data.fit);
         store.meta.cloudUpdatedAt = remoteTime;
         store.selectedDate = todayStr();
         this.localDirtyAt = 0;

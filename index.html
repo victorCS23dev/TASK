@@ -76,6 +76,7 @@
     <nav class="switcher" aria-label="Cambiar de app">
       <button data-go="ruta" class="active">🎓 Ruta</button>
       <button data-go="tareas">✅ Tareas</button>
+      <button data-go="fit">💪 Fit</button>
       <button data-go="home">🏠 Inicio</button>
     </nav>
     <div class="progress-card hero">
@@ -95,6 +96,7 @@
     <nav class="switcher" aria-label="Cambiar de app">
       <button data-go="ruta">🎓 Ruta</button>
       <button data-go="tareas" class="active">✅ Tareas</button>
+      <button data-go="fit">💪 Fit</button>
       <button data-go="home">🏠 Inicio</button>
     </nav>
     <nav class="day-nav">
@@ -150,15 +152,35 @@
     </section>
   </section>
 
+  <!-- ===== VISTA: RUTINA FITNESS ===== -->
+  <section id="viewFit" class="hidden">
+    <nav class="switcher" aria-label="Cambiar de app">
+      <button data-go="ruta">🎓 Ruta</button>
+      <button data-go="tareas">✅ Tareas</button>
+      <button data-go="fit" class="active">💪 Fit</button>
+      <button data-go="home">🏠 Inicio</button>
+    </nav>
+    <nav class="switcher sub" aria-label="Secciones fitness">
+      <button data-ftab="hoy">🔥 Hoy</button>
+      <button data-ftab="rutina">🗓️ Rutina</button>
+      <button data-ftab="ejercicios">📚 Ejercicios</button>
+      <button data-ftab="records">🏆 Récords</button>
+      <button data-ftab="cuerpo">⚖️ Cuerpo</button>
+      <button data-ftab="stats">📊 Stats</button>
+    </nav>
+    <div id="fitBody"></div>
+  </section>
+
   <!-- PLANTILLA para futuras apps: copia este bloque, cambia id y regístrala en APPS.
   <section id="view-miapp" class="hidden"> ... </section>
   -->
 
   <button id="btnInstall" class="install-btn hidden">📲 Instalar app</button>
-  <footer class="foot">Offline · Sin anuncios · Todo se guarda en tu dispositivo.</footer>
+  <footer class="foot">Offline · Sin anuncios · Todo se guarda en tu dispositivo.<br/>Exercise illustrations by <a href="https://repdb.co" target="_blank" rel="noopener">RepDB (repdb.co)</a> · Push-up photo: free-exercise-db (public domain).</footer>
 </div>
 
 <script src="ruta-data.js"></script>
+<script src="fit-data.js"></script>
 <script src="sync-cloud.js"></script>
 <script src="app.js"></script>
 <script>
