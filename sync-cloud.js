@@ -161,6 +161,7 @@ function paintAuth() {
   $('cloudCard').classList.toggle('hidden', !HubCloud._online || has);
   $('btnCloudOut').classList.toggle('hidden', !has);
   if (has && HubCloud._online) setStatus('☁️ Conectado');
+  else if (HubCloud._online) setStatus('🔑 Escribe tu clave abajo para sincronizar');
 }
 function setStatus(t) { const el = $('cloudStatus'); if (el) el.textContent = t; }
 
