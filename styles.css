@@ -63,6 +63,13 @@ body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Robot
 .hint{margin-top:14px;font-size:.8rem;color:var(--muted)}
 .hint summary{cursor:pointer;font-weight:700;color:var(--text)}
 .hint code{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:0 5px;font-size:.75rem}
+/* ---------- Sync nube ---------- */
+.cloud-bar{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.78rem;color:var(--muted)}
+.cloud-bar .grow{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.login-card{margin-top:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.login-card h3{margin:0;font-size:.95rem}
+.field{padding:11px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:.9rem;width:100%}
+.field:focus{border-color:var(--primary);outline:none}
 
 /* ---------- Switcher entre apps ---------- */
 .switcher{display:flex;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;margin:0 0 12px;gap:4px;box-shadow:var(--shadow)}

@@ -1,5 +1,5 @@
-const CACHE = 'mi-hub-v4';
-const FILES = ['./', './index.html', './styles.css', './app.js', './ruta-data.js', './manifest.json', './icon.svg'];
+const CACHE = 'mi-hub-v5';
+const FILES = ['./', './index.html', './styles.css', './app.js', './ruta-data.js', './sync-cloud.js', './manifest.json', './icon.svg'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });

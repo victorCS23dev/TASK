@@ -35,7 +35,7 @@ function blankStore() {
   return {
     theme: null, view: 'home', selectedDate: todayStr(),
     days: {}, ruta: { topicsDone: {}, weekState: {}, habits: {}, notes: {}, openMod: { m1: true }, openSem: {} },
-    activity: {}, filters: { cat: '', estado: '', prio: '' }, ui: { showStats: true },
+    activity: {}, filters: { cat: '', estado: '', prio: '' }, ui: { showStats: true }, meta: { cloudUpdatedAt: 0 },
   };
 }
 function loadOrMigrate() {
@@ -43,7 +43,7 @@ function loadOrMigrate() {
     const raw = localStorage.getItem(KEY_V2);
     if (raw) {
       const s = Object.assign(blankStore(), JSON.parse(raw));
-      if (s.days && s.ruta) { if (!s.view) s.view = s.tab || 'home'; delete s.tab; if (!s.ui || typeof s.ui.showStats !== 'boolean') s.ui = { showStats: true }; return s; }
+      if (s.days && s.ruta) { if (!s.view) s.view = s.tab || 'home'; delete s.tab; if (!s.ui || typeof s.ui.showStats !== 'boolean') s.ui = { showStats: true }; if (!s.meta) s.meta = { cloudUpdatedAt: 0 }; return s; }
     }
   } catch {}
   const s = blankStore();
@@ -53,7 +53,7 @@ function loadOrMigrate() {
   } catch {}
   return s;
 }
-function save() { try { localStorage.setItem(KEY_V2, JSON.stringify(store)); } catch {} }
+function save() { try { localStorage.setItem(KEY_V2, JSON.stringify(store)); } catch {} if (window.HubCloud) window.HubCloud.onLocalChange(); }
 function markActivity() { store.activity[todayStr()] = 1; }
 
 /* ============================================================
@@ -595,3 +595,4 @@ if (!location.hash) {
   location.hash = '#/' + legacy;
 }
 syncRoute();
+if (window.HubCloud) HubCloud.boot();

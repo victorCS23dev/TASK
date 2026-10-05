@@ -39,6 +39,16 @@
       <button id="btnThemeHome" class="icon-btn" title="Modo claro/oscuro">🌙</button>
     </header>
 
+    <div id="cloudBar" class="cloud-bar hidden"><span id="cloudStatus" class="grow">☁️ …</span><button id="btnCloudSync" class="chip-btn">Sincronizar</button><button id="btnCloudOut" class="chip-btn hidden">Salir</button></div>
+    <section id="cloudCard" class="card login-card hidden">
+      <h3>☁️ Sincroniza tu PC y tu celular</h3>
+      <p class="mensaje">Una sola cuenta para tus dos dispositivos. Solo tú puedes leer tus datos.</p>
+      <input id="cloudEmail" class="field" type="email" placeholder="tu@correo.com" autocomplete="email" />
+      <input id="cloudPass" class="field" type="password" placeholder="Contraseña (6+ caracteres)" autocomplete="current-password" />
+      <div class="bit-row"><button id="btnCloudLogin" class="chip-btn">Entrar</button><button id="btnCloudSignup" class="chip-btn">Crear cuenta</button></div>
+      <p id="cloudError" class="aviso hidden"></p>
+    </section>
+
     <div class="hub-summary card">
       <div>
         <strong id="hubMsg">Tu día en un vistazo</strong>
@@ -151,6 +161,7 @@
 
 <script src="ruta-data.js"></script>
 <script src="app.js"></script>
+<script src="sync-cloud.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
