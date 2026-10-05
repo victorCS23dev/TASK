@@ -4,81 +4,157 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#4f46e5" />
-  <meta name="description" content="Tareas Diarias - controla tus pendientes día a día sin duplicados" />
-  <title>Tareas Diarias</title>
+  <meta name="description" content="Mi Hub personal: Ruta SQL + Power BI, Tasklist y más apps. Offline, sin anuncios." />
+  <title>Mi Hub · Apps</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Tareas" />
+  <meta name="apple-mobile-web-app-title" content="Mi Hub" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="topbar">
+<div class="app">
+
+  <!-- ===== Barra superior (visible en vistas de app) ===== -->
+  <header id="appbar" class="appbar hidden">
+    <button id="btnHome" class="icon-btn" title="Volver al inicio">‹</button>
+    <div class="appbar-title">
+      <strong id="appbarName">App</strong>
+      <small id="appbarSub">—</small>
+    </div>
+    <div class="top-actions">
+      <button id="btnTheme" class="icon-btn" title="Modo claro/oscuro">🌙</button>
+      <button id="btnExport" class="icon-btn" title="Exportar respaldo JSON">📤</button>
+    </div>
+  </header>
+
+  <!-- ===== VISTA: INICIO / HUB ===== -->
+  <section id="viewHome">
+    <header class="hub-hero">
       <div>
-        <h1>✓ Tareas Diarias</h1>
-        <p id="fechaLabel" class="fecha">—</p>
+        <h1>👋 Hola, ¿qué hacemos hoy?</h1>
+        <p class="fecha"><span id="streakTop">🔥 0</span> · <span id="fechaLabel">—</span></p>
       </div>
-      <div class="top-actions">
-        <button id="btnStats" class="icon-btn" title="Estadísticas" aria-label="Estadísticas">📊</button>
-        <button id="btnTheme" class="icon-btn" title="Modo oscuro" aria-label="Cambiar tema">🌙</button>
-      </div>
+      <button id="btnThemeHome" class="icon-btn" title="Modo claro/oscuro">🌙</button>
     </header>
 
+    <div class="hub-summary card">
+      <div>
+        <strong id="hubMsg">Tu día en un vistazo</strong>
+        <p id="hubSub" class="mensaje">—</p>
+      </div>
+      <div class="hub-stats">
+        <div><span id="hubRuta">0%</span><small>🎓 Ruta</small></div>
+        <div><span id="hubPend">0</span><small>📌 Pendientes hoy</small></div>
+        <div><span id="hubRacha">0</span><small>🔥 Racha</small></div>
+      </div>
+    </div>
+
+    <h2 class="hub-h2">Mis aplicaciones</h2>
+    <div id="appGrid" class="app-grid"></div>
+
+    <details class="hint">
+      <summary>➕ ¿Cómo agrego otra app en el futuro?</summary>
+      <p>Está preparado: cada app es una entrada en el registro <code>APPS</code> de <code>app.js</code>
+      (id, nombre, icono, color y vista). Duplica una entrada, crea su <code>&lt;section&gt;</code>
+      y aparece sola en esta pantalla. Sin tocar el inicio.</p>
+    </details>
+  </section>
+
+  <!-- ===== VISTA: RUTA DE APRENDIZAJE ===== -->
+  <section id="viewRuta" class="hidden">
+    <nav class="switcher" aria-label="Cambiar de app">
+      <button data-go="ruta" class="active">🎓 Ruta</button>
+      <button data-go="tareas">✅ Tareas</button>
+      <button data-go="home">🏠 Inicio</button>
+    </nav>
+    <div class="progress-card hero">
+      <div class="progress-top"><span id="rutaContador">0% completado</span><span id="rutaDetalle">0/0 temas</span></div>
+      <div class="progress-bar big"><div id="rutaFill"></div></div>
+      <div class="hero-row">
+        <span id="rachaCard" class="pill">🔥 Racha: 0 días</span>
+        <span id="semanaActual" class="pill soft">📌 —</span>
+      </div>
+      <p id="rutaMsg" class="mensaje"></p>
+    </div>
+    <div id="modulos" class="mod-grid"></div>
+  </section>
+
+  <!-- ===== VISTA: TASKLIST PERSONAL ===== -->
+  <section id="viewTareas" class="hidden">
+    <nav class="switcher" aria-label="Cambiar de app">
+      <button data-go="ruta">🎓 Ruta</button>
+      <button data-go="tareas" class="active">✅ Tareas</button>
+      <button data-go="home">🏠 Inicio</button>
+    </nav>
     <nav class="day-nav">
-      <button id="btnPrev" class="nav-btn" aria-label="Día anterior">‹</button>
+      <button id="btnPrev" class="nav-btn">‹</button>
       <div id="dayStrip" class="day-strip"></div>
-      <button id="btnNext" class="nav-btn" aria-label="Día siguiente">›</button>
+      <button id="btnNext" class="nav-btn">›</button>
       <button id="btnToday" class="today-btn">Hoy</button>
     </nav>
-
     <section class="progress-card">
-      <div class="progress-top">
-        <span id="contador">0 de 0</span>
-        <span id="porcentaje">0%</span>
-      </div>
+      <div class="progress-top"><span id="contador">0 de 0</span><span id="porcentaje">0%</span></div>
       <div class="progress-bar"><div id="progressFill"></div></div>
-      <p id="mensaje" class="mensaje">Agrega tu primer pendiente 👇</p>
+      <p id="mensaje" class="mensaje"></p>
     </section>
-
     <form id="formAdd" class="add-box" autocomplete="off">
-      <input id="inputTask" type="text" placeholder="Nueva tarea… ej: Regar plantas" maxlength="120" enterkeyhint="done" />
-      <button type="submit" class="add-btn">＋</button>
+      <input id="inputTask" type="text" placeholder="Nueva tarea… ej: Revisar reporte" maxlength="120" enterkeyhint="done" />
+      <div class="add-row">
+        <select id="selCat" title="Categoría">
+          <option value="Personal">🙂 Personal</option>
+          <option value="Trabajo">💼 Trabajo</option>
+          <option value="Proyecto">💻 Proyecto</option>
+        </select>
+        <select id="selPrio" title="Prioridad">
+          <option value="Media">● Media</option>
+          <option value="Alta">▲ Alta</option>
+          <option value="Baja">▼ Baja</option>
+        </select>
+        <button type="submit" class="add-btn">＋</button>
+      </div>
     </form>
     <p id="avisoDuplicado" class="aviso hidden">⚠️ Esa tarea ya existe hoy, no se duplicó.</p>
+    <div class="filters">
+      <select id="fCat"><option value="">Todas las categorías</option><option>Trabajo</option><option>Proyecto</option><option>Personal</option></select>
+      <select id="fEstado"><option value="">Pendiente + Completado</option><option value="pend">Solo pendientes</option><option value="done">Solo completadas</option></select>
+      <select id="fPrio"><option value="">Toda prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select>
+    </div>
+    <ul id="lista" class="lista"></ul>
+    <div id="vacio" class="vacio hidden"><p>🎉 Sin pendientes con esos filtros.</p></div>
 
-    <main>
-      <ul id="lista" class="lista"></ul>
-      <div id="vacio" class="vacio hidden">
-        <p>🎉 Día libre, sin pendientes.</p>
-        <small>Lo no completado de ayer se arrastra solo al día nuevo.</small>
-      </div>
-    </main>
-
-    <section id="panelStats" class="stats hidden">
+    <button id="btnStatsToggle" class="ghost-btn">📊 Ocultar estadísticas</button>
+    <section id="panelStats" class="stats">
       <h2>Estadísticas</h2>
       <div class="stat-grid">
-        <div class="stat"><span id="stRacha" class="stat-num">0</span><span class="stat-label">🔥 Racha (días con todo listo)</span></div>
-        <div class="stat"><span id="stTotal" class="stat-num">0</span><span class="stat-label">✅ Total completadas</span></div>
+        <div class="stat"><span id="stRacha" class="stat-num">0</span><span class="stat-label">🔥 Racha estudio</span></div>
+        <div class="stat"><span id="stTotal" class="stat-num">0</span><span class="stat-label">✅ Tareas hechas</span></div>
         <div class="stat"><span id="stHoy" class="stat-num">0%</span><span class="stat-label">📅 % hoy</span></div>
-        <div class="stat"><span id="stProm" class="stat-num">0%</span><span class="stat-label">📈 Promedio 7 días</span></div>
+        <div class="stat"><span id="stRuta" class="stat-num">0%</span><span class="stat-label">🎓 % ruta</span></div>
       </div>
       <h3>Últimos 7 días</h3>
       <div id="chart" class="chart"></div>
-      <button id="btnExport" class="secondary-btn">📤 Exportar historial</button>
-      <button id="btnClear" class="danger-btn">🗑 Borrar todo</button>
+      <button id="btnImport" class="secondary-btn">📥 Importar respaldo</button>
+      <input id="fileImport" type="file" accept="application/json,.json" class="hidden" />
+      <button id="btnClear" class="danger-btn">🗑 Borrar todo (ruta + tareas)</button>
     </section>
+  </section>
 
-    <button id="btnInstall" class="install-btn hidden">📲 Instalar app</button>
-    <footer class="foot">Tus datos se guardan solo en tu celular (offline).<br/>Lo pendiente se arrastra al día siguiente sin repetidos.</footer>
-  </div>
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
-    }
-  </script>
+  <!-- PLANTILLA para futuras apps: copia este bloque, cambia id y regístrala en APPS.
+  <section id="view-miapp" class="hidden"> ... </section>
+  -->
+
+  <button id="btnInstall" class="install-btn hidden">📲 Instalar app</button>
+  <footer class="foot">Offline · Sin anuncios · Todo se guarda en tu dispositivo.</footer>
+</div>
+
+<script src="ruta-data.js"></script>
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  }
+</script>
 </body>
 </html>

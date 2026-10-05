@@ -1,7 +1,7 @@
 {
-  "name": "Tareas Diarias",
-  "short_name": "Tareas",
-  "description": "Controla tus tareas diarias. Lo pendiente se arrastra sin duplicados.",
+  "name": "Ruta SQL + Power BI · Dashboard",
+  "short_name": "Ruta BI",
+  "description": "Dashboard Ruta SQL + Power BI + Tasklist personal. Offline, sin anuncios.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f4f8",
