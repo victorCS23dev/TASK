@@ -61,7 +61,7 @@ const HubCloud = {
       this.localDirtyAt = 0;
       save();
       this.muted = false;
-      setStatus('☁️ Sincronizado ✓');
+      saySyncOk('Sincronizado ✓');
     } catch (err) {
       this._syncError(err);
       if (err.message !== 'clave' && err.message !== 'config') {
@@ -97,11 +97,11 @@ const HubCloud = {
         save();
         this.muted = false;
         refresh();
-        setStatus('☁️ Actualizado desde el otro dispositivo ✓');
+        saySyncOk('Actualizado desde el otro dispositivo ✓');
       } else if (this.localDirtyAt > base) {
         await this.pushNow();
       } else {
-        setStatus('☁️ Sincronizado ✓');
+        saySyncOk('Sincronizado ✓');
       }
     } catch (err) {
       this._syncError(err);
@@ -161,9 +161,25 @@ function paintAuth() {
   $('cloudBar').classList.toggle('hidden', !HubCloud._online);
   $('cloudCard').classList.toggle('hidden', !HubCloud._online || has);
   $('btnCloudOut').classList.toggle('hidden', !has);
-  if (has && HubCloud._online) setStatus('☁️ Conectado');
+  if (has && HubCloud._online) {
+    const last = lastSyncText();
+    setStatus(last ? `☁️ Conectado · último respaldo ${last}` : '☁️ Conectado');
+  }
   else if (HubCloud._online) setStatus('🔑 Escribe tu clave abajo para sincronizar');
 }
 function setStatus(t) { const el = $('cloudStatus'); if (el) el.textContent = t; }
+/* Marca un sync exitoso con su hora (guardada solo en este dispositivo).
+   Así siempre ves de un vistazo cuándo se respaldó por última vez. */
+function saySyncOk(msg) {
+  try { localStorage.setItem('hubCloud.lastSync', Date.now() + ''); } catch {}
+  setStatus(`☁️ ${msg} · ${new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}`);
+}
+function lastSyncText() {
+  try {
+    const t = +(localStorage.getItem('hubCloud.lastSync') || 0);
+    if (!t) return null;
+    return new Date(t).toLocaleString('es', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch { return null; }
+}
 
 window.HubCloud = HubCloud;
