@@ -1,4 +1,4 @@
-const CACHE = 'mi-hub-v16';
+const CACHE = 'mi-hub-v17';
 const FILES = ['./', './index.html', './styles.css', './app.js', './ruta-data.js', './fit-data.js', './sync-cloud.js', './manifest.json', './icon.svg',
 './img/fit/aperturas-a.webp', './img/fit/aperturas-b.webp', './img/fit/burpees.webp',
 './img/fit/climbers-a.webp', './img/fit/climbers-b.webp', './img/fit/crunch-a.webp', './img/fit/crunch-b.webp',

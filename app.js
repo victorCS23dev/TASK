@@ -660,11 +660,19 @@ function renderFitRecords() {
       const vTxt = e.unit === 'seg' ? `📦 ${Math.round(r.v)}s en total` : (r.w > 0 ? `📦 ${Math.round(r.v)}kg en total` : `📦 ${Math.round(r.v)} reps en total`);
       const sTxt = r.s ? `${r.s} series · ` : '';
       h += `<li class="task"><span class="demo sm">${demoEx(e)}</span>
-        <span class="task-text">${esc(e.nombre)}<br><small class="mensaje">${wTxt} · ${sTxt}🔁 ${r.r}${e.unit === 'seg' ? 's' : ''} máx · ${vTxt} <span class="badge">${esc(r.date || '')}</span></small></span></li>`;
+        <span class="task-text">${esc(e.nombre)}<br><small class="mensaje">${wTxt} · ${sTxt}🔁 ${r.r}${e.unit === 'seg' ? 's' : ''} máx · ${vTxt} <span class="badge">${esc(r.date || '')}</span></small></span>
+        <button class="icon-mini" title="Reiniciar récord" data-recdel="${k}">🗑</button></li>`;
     });
     h += '</ul>';
   }
   $('fitBody').innerHTML = h;
+  $('fitBody').querySelectorAll('[data-recdel]').forEach(b => b.onclick = () => {
+    const ex = exById(b.dataset.recdel);
+    if (confirm(`¿Reiniciar el récord de "${ex ? ex.nombre : b.dataset.recdel}"? Se borrará su marca guardada.`)) {
+      delete store.fit.records[b.dataset.recdel];
+      save(); renderFit();
+    }
+  });
 }
 
 /* ---------- CUERPO: peso, altura, IMC ---------- */
