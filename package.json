@@ -1,0 +1,9 @@
+{
+  "name": "mi-hub",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Mi Hub personal: Ruta SQL+PowerBI + Tasklist. Sitio estático + 1 función Netlify (sync).",
+  "dependencies": {
+    "@netlify/blobs": "^10"
+  }
+}

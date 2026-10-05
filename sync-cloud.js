@@ -1,155 +1,95 @@
 /* ============================================================
- * sync-cloud.js — Sincronización PC ↔ celular vía Supabase
+ * sync-cloud.js — Sincronización PC ↔ celular con TU Netlify
  * ------------------------------------------------------------
- * CÓMO ACTIVARLO (una sola vez, ~5 min):
- *  1. Crea un proyecto gratis en https://supabase.com → copia el
- *     "Project URL" y la "anon public key" (Project Settings → API).
- *  2. Pégalos abajo en CLOUD_CONFIG y sube el cambio a GitHub.
- *  3. En Supabase → SQL Editor, ejecuta el script TABLA_SQL que está
- *     al final de este archivo (crea la tabla + permisos: solo tú
- *     puedes leer/escribir tu fila, vía tu login).
- *  4. Abre tu sitio, crea tu cuenta (Crear cuenta) e inicia sesión
- *     con LA MISMA cuenta en PC y celular. Listo.
+ * Sin cuentas externas: los datos viven en Netlify Blobs
+ * (base de datos incluida en tu hosting) y los protege una
+ * clave que solo tú conoces (HUB_TOKEN en Netlify).
+ * En cada dispositivo escribes la clave UNA vez y queda
+ * guardada en ese navegador.
  *
  * DISEÑO (offline-first, sin dependencias, solo fetch):
  *  - Todo se sigue guardando en LocalStorage al instante.
- *  - Cada cambio programa un push (debounce 2.5s) con tu sesión.
- *  - Al abrir, cada 45s y con "Sincronizar" hace pull.
- *  - Conflictos: gana el último en escribir (last-write-wins).
- *    Si editas en los 2 a la vez, uno sobrescribe al otro: evita
- *    usar ambos al mismo tiempo y usa "Sincronizar" al cambiar.
+ *  - Cada cambio programa un push (debounce 2.5s).
+ *  - Al abrir, cada 45s y con el botón "Sincronizar" hace pull.
+ *  - Conflictos: gana el último en escribir. No uses PC y
+ *    celular al mismo tiempo; pulsa Sincronizar al cambiar.
+ *  - En localhost no hay función → la barra se oculta sola
+ *    (el sync solo vive en tu URL de Netlify).
  * ============================================================ */
-const CLOUD_CONFIG = {
-  url: 'https://TU-PROYECTO.supabase.co', // ← PASO 2: pega tu Project URL
-  anonKey: 'TU-ANON-PUBLIC-KEY',          // ← PASO 2: pega tu anon public key
-};
-const SESSION_KEY = 'hubCloud.session.v1';
+const CLOUD_ENDPOINT = '/.netlify/functions/state';
+const KEY_SLOT = 'hubCloud.key.v1';
 
 const HubCloud = {
-  muted: false,          // en true: save() no programa push (aplica remoto)
-  localDirtyAt: 0,       // último cambio local pendiente de subir
+  muted: false,        // en true: save() no programa push (aplica remoto)
+  localDirtyAt: 0,     // último cambio local pendiente de subir
   _timer: null,
+  _checked: false,     // ya se probó si hay backend
+  _online: false,      // hay función disponible
 
-  isConfigured() {
-    return CLOUD_CONFIG.url.startsWith('https://')
-      && !CLOUD_CONFIG.url.includes('TU-PROYECTO')
-      && (CLOUD_CONFIG.anonKey || '').length > 20;
-  },
-  session() {
-    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; }
-  },
-  _saveSession(s) {
-    if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
-    else localStorage.removeItem(SESSION_KEY);
-  },
+  key() { try { return localStorage.getItem(KEY_SLOT) || ''; } catch { return ''; } },
 
   /* Llamado desde save() en app.js tras cada cambio local */
   onLocalChange() {
-    if (this.muted || !this.isConfigured() || !this.session()) return;
+    if (this.muted || !this._online || !this.key()) return;
     this.localDirtyAt = Date.now();
     setStatus('⏳ Subiendo cambios…');
     clearTimeout(this._timer);
     this._timer = setTimeout(() => this.pushNow(), 2500);
   },
 
-  /* ---------- Auth (email + contraseña, solo tú) ---------- */
-  async _auth(path, body) {
-    const r = await fetch(CLOUD_CONFIG.url + path, {
-      method: 'POST',
-      headers: { apikey: CLOUD_CONFIG.anonKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+  async _call(method, body) {
+    const r = await fetch(CLOUD_ENDPOINT, {
+      method,
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + this.key() },
+      body: body ? JSON.stringify(body) : undefined,
     });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.msg || d.error_description || d.message || ('HTTP ' + r.status));
-    return d;
-  },
-  async signUp(email, password) {
-    const d = await this._auth('/auth/v1/signup', { email, password });
-    if (!d.access_token) throw new Error('Revisa tu correo: Supabase puede pedir confirmación (desactívala en Auth → Providers → Email → Confirm email).');
-    this._saveSession({ access_token: d.access_token, refresh_token: d.refresh_token, user_id: d.user.id, email });
-  },
-  async signIn(email, password) {
-    const d = await this._auth('/auth/v1/token?grant_type=password', { email, password });
-    this._saveSession({ access_token: d.access_token, refresh_token: d.refresh_token, user_id: d.user.id, email });
-  },
-  signOut() { this._saveSession(null); paintAuth(); setStatus('🔑 Sesión cerrada (modo local)'); },
-  async _token() {
-    let s = this.session();
-    if (!s) return null;
-    if (s.expires_at && Date.now() < s.expires_at - 60000) return s.access_token;
-    try { // refrescar token vencido
-      const d = await this._auth('/auth/v1/token?grant_type=refresh_token', { refresh_token: s.refresh_token });
-      s = { access_token: d.access_token, refresh_token: d.refresh_token || s.refresh_token, user_id: (d.user && d.user.id) || s.user_id, email: s.email, expires_at: Date.now() + (d.expires_in || 3600) * 1000 };
-      this._saveSession(s);
-      return s.access_token;
-    } catch { this._saveSession(null); paintAuth(); return null; }
+    if (r.status === 404) throw new Error('no-backend');
+    if (r.status === 401) throw new Error('clave');
+    if (r.status === 500) throw new Error('config');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
   },
 
   /* ---------- Push: subir estado local ---------- */
   async pushNow() {
-    if (!this.isConfigured()) return;
-    const token = await this._token();
-    if (!token) { paintAuth(); return; }
-    if ((store.meta.cloudUpdatedAt || 0) >= this.localDirtyAt && this.localDirtyAt !== 0) { /* nada nuevo */ }
-    if (!this.localDirtyAt) return;
+    if (!this._online || !this.key() || !this.localDirtyAt) return;
     setStatus('⏳ Subiendo cambios…');
     try {
-      const r = await fetch(CLOUD_CONFIG.url + '/rest/v1/hub_state', {
-        method: 'POST',
-        headers: {
-          apikey: CLOUD_CONFIG.anonKey, Authorization: 'Bearer ' + token,
-          'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=representation',
-        },
-        body: JSON.stringify([{
-          user_id: this.session().user_id,
-          data: { days: store.days, ruta: store.ruta, activity: store.activity },
-          updated_at: new Date().toISOString(),
-        }]),
-      });
-      if (r.status === 401) { this._saveSession(null); paintAuth(); throw new Error('sesión'); }
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const rows = await r.json().catch(() => []);
-      const serverTime = Date.parse((rows[0] && rows[0].updated_at) || '') || Date.now();
+      const record = await this._call('PUT', { data: { days: store.days, ruta: store.ruta, activity: store.activity } });
       this.muted = true;
-      store.meta.cloudUpdatedAt = serverTime;
+      store.meta.cloudUpdatedAt = record.updated_at || Date.now();
       this.localDirtyAt = 0;
       save();
       this.muted = false;
       setStatus('☁️ Sincronizado ✓');
     } catch (err) {
-      if ((err.message || '') !== 'sesión') setStatus('⚠️ Sin conexión, reintento luego');
-      clearTimeout(this._timer);
-      this._timer = setTimeout(() => this.pushNow(), 15000);
+      this._syncError(err);
+      if (err.message !== 'clave' && err.message !== 'config') {
+        clearTimeout(this._timer);
+        this._timer = setTimeout(() => this.pushNow(), 15000);
+      }
     }
   },
 
   /* ---------- Pull: bajar estado remoto ---------- */
   async pullNow() {
-    if (!this.isConfigured()) return;
-    const token = await this._token();
-    if (!token) { paintAuth(); return; }
+    if (!this._online || !this.key()) return;
     setStatus('⬇️ Revisando cambios…');
     try {
-      const r = await fetch(
-        CLOUD_CONFIG.url + '/rest/v1/hub_state?user_id=eq.' + this.session().user_id + '&select=data,updated_at',
-        { headers: { apikey: CLOUD_CONFIG.anonKey, Authorization: 'Bearer ' + token } });
-      if (r.status === 401) { this._saveSession(null); paintAuth(); throw new Error('sesión'); }
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const rows = await r.json().catch(() => []);
-      if (!rows.length) { // primera vez: no hay nada en la nube → subir lo local
-        if (this.localDirtyAt || !store.meta.cloudUpdatedAt) { this.localDirtyAt = this.localDirtyAt || Date.now(); await this.pushNow(); }
-        else setStatus('☁️ Sincronizado ✓');
+      const remote = await this._call('GET');
+      const remoteTime = remote.updated_at || 0;
+      const base = store.meta.cloudUpdatedAt || 0;
+      if (!remote.data) { // nube vacía: primera vez → subir lo local
+        this.localDirtyAt = this.localDirtyAt || Date.now();
+        await this.pushNow();
         return;
       }
-      const remoteTime = Date.parse(rows[0].updated_at) || 0;
-      const base = store.meta.cloudUpdatedAt || 0;
       if (remoteTime > base + 1000 && remoteTime > this.localDirtyAt) {
         // La nube trae algo más nuevo → adoptar (solo datos, no tema/filtros)
-        const d = rows[0].data || {};
         this.muted = true;
-        if (d.days) store.days = d.days;
-        if (d.ruta) store.ruta = Object.assign(blankStore().ruta, d.ruta);
-        if (d.activity) store.activity = d.activity;
+        if (remote.data.days) store.days = remote.data.days;
+        if (remote.data.ruta) store.ruta = Object.assign(blankStore().ruta, remote.data.ruta);
+        if (remote.data.activity) store.activity = remote.data.activity;
         store.meta.cloudUpdatedAt = remoteTime;
         store.selectedDate = todayStr();
         this.localDirtyAt = 0;
@@ -163,67 +103,65 @@ const HubCloud = {
         setStatus('☁️ Sincronizado ✓');
       }
     } catch (err) {
-      if ((err.message || '') !== 'sesión') setStatus('⚠️ Sin conexión');
+      this._syncError(err);
     }
   },
 
-  /* ---------- Arranque ---------- */
-  boot() {
-    if (!this.isConfigured()) return; // sin configurar = modo solo-local
-    $('cloudBar').classList.remove('hidden');
-    paintAuth();
-    if (this.session()) {
-      this.pullNow();
-      setInterval(() => { if (!document.hidden && this.session()) this.pullNow(); }, 45000);
-      document.addEventListener('visibilitychange', () => { if (!document.hidden && this.session()) this.pullNow(); });
-    }
-    $('btnCloudSync').onclick = async () => { await this.pullNow(); await this.pushNow(); };
-    $('btnCloudOut').onclick = () => this.signOut();
-    $('btnCloudLogin').onclick = () => this._doAuth(false);
-    $('btnCloudSignup').onclick = () => this._doAuth(true);
+  _syncError(err) {
+    const m = (err && err.message) || '';
+    if (m === 'clave') { paintAuth(); setStatus('🔑 Clave incorrecta, revísala'); }
+    else if (m === 'config') setStatus('⚠️ Falta HUB_TOKEN en Netlify');
+    else if (m !== 'no-backend') setStatus('⚠️ Sin conexión, reintento luego');
   },
-  async _doAuth(isSignup) {
-    const email = ($('cloudEmail').value || '').trim();
-    const pass = $('cloudPass').value || '';
+
+  /* ---------- Arranque: detectar backend y pintar ---------- */
+  boot() {
+    $('btnCloudSync').onclick = async () => { await this.pullNow(); await this.pushNow(); };
+    $('btnCloudOut').onclick = () => { try { localStorage.removeItem(KEY_SLOT); } catch {} paintAuth(); setStatus('🔑 Clave olvidada en este dispositivo'); };
+    $('btnCloudConnect').onclick = () => this.connect();
+    $('cloudKey').onkeydown = e => { if (e.key === 'Enter') this.connect(); };
+    // Sonda: ¿existe la función? (en localhost no → modo local silencioso)
+    fetch(CLOUD_ENDPOINT, { headers: { Authorization: 'Bearer ' + this.key() } })
+      .then(r => {
+        if (r.status === 404) return; // sin backend: barra oculta, todo igual que antes
+        this._online = true;
+        this._checked = true;
+        $('cloudBar').classList.remove('hidden');
+        paintAuth();
+        if (this.key()) this.pullNow();
+        setInterval(() => { if (!document.hidden && this.key()) this.pullNow(); }, 45000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && this.key()) this.pullNow(); });
+      })
+      .catch(() => { /* sin red: silencioso, sigue local */ });
+  },
+
+  async connect() {
+    const k = ($('cloudKey').value || '').trim();
     const errBox = $('cloudError');
     errBox.classList.add('hidden');
-    if (!email || pass.length < 6) { errBox.textContent = '⚠️ Escribe tu correo y una contraseña de 6+ caracteres.'; errBox.classList.remove('hidden'); return; }
+    if (!k) { errBox.textContent = '⚠️ Escribe tu clave de sincronización.'; errBox.classList.remove('hidden'); return; }
+    try { localStorage.setItem(KEY_SLOT, k); } catch {}
+    $('cloudKey').value = '';
+    paintAuth();
+    this.localDirtyAt = this.localDirtyAt || Date.now();
     try {
-      if (isSignup) await this.signUp(email, pass);
-      else await this.signIn(email, pass);
-      paintAuth();
-      setStatus('☁️ Conectado, sincronizando…');
-      this.localDirtyAt = this.localDirtyAt || Date.now();
       await this.pullNow();
     } catch (e) {
-      errBox.textContent = '⚠️ ' + (e.message || 'No se pudo conectar');
+      errBox.textContent = '⚠️ ' + (e.message === 'clave' ? 'Clave incorrecta.' : 'No se pudo conectar.');
       errBox.classList.remove('hidden');
     }
   },
 };
 
-/* Pintar tarjeta login / botón salir según haya sesión */
+/* Pintar tarjeta clave / botón salir según haya clave guardada */
 function paintAuth() {
-  if (!HubCloud.isConfigured()) return;
-  const s = HubCloud.session();
-  $('cloudCard').classList.toggle('hidden', !!s);
-  $('btnCloudOut').classList.toggle('hidden', !s);
-  if (s) setStatus('☁️ Conectado como ' + (s.email || ''));
+  if (!HubCloud._online && !HubCloud.key()) return;
+  const has = !!HubCloud.key();
+  $('cloudBar').classList.toggle('hidden', !HubCloud._online);
+  $('cloudCard').classList.toggle('hidden', !HubCloud._online || has);
+  $('btnCloudOut').classList.toggle('hidden', !has);
+  if (has && HubCloud._online) setStatus('☁️ Conectado');
 }
 function setStatus(t) { const el = $('cloudStatus'); if (el) el.textContent = t; }
 
 window.HubCloud = HubCloud;
-
-/* ============================================================
- * TABLA_SQL — ejecútalo UNA vez en Supabase → SQL Editor:
- *
- * create table if not exists public.hub_state (
- *   user_id uuid primary key references auth.users(id) on delete cascade,
- *   data jsonb not null default '{}',
- *   updated_at timestamptz not null default now()
- * );
- * alter table public.hub_state enable row level security;
- * drop policy if exists "own all" on public.hub_state;
- * create policy "own all" on public.hub_state for all to authenticated
- *   using (auth.uid() = user_id) with check (auth.uid() = user_id);
- * ============================================================ */
