@@ -99,10 +99,11 @@ const exById = id => EJERCICIOS.find(e => e.id === id);
 
 /* Demo con foto real: alterna inicio/fin (efecto movimiento, offline).
    Si la foto falla, cae al SVG animado. */
-function demoEx(e) {
-  if (!e || !e.img) return `<span class="demo">${demoSVG(e ? e.patron : 'squat')}</span>`;
+function demoEx(e, sm) {
+  const cls = 'demo photo' + (sm ? ' sm' : '');
+  if (!e || !e.img) return `<span class="${cls}">${demoSVG(e ? e.patron : 'squat')}</span>`;
   const b = e.img2 ? `<img class="ph b" src="${e.img2}" alt="" loading="lazy" onerror="this.remove()">` : '';
-  return `<span class="demo photo"><img class="ph a" src="${e.img}" alt="${escAttr(e.nombre)}" loading="lazy" onerror="fitImgFB(this,'${e.patron}')">${b}</span>`;
+  return `<span class="${cls}"><img class="ph a" src="${e.img}" alt="${escAttr(e.nombre)}" loading="lazy" onerror="fitImgFB(this,'${e.patron}')">` + b + `</span>`;
 }
 function escAttr(s) { return (s || '').replace(/"/g, '&quot;'); }
 function fitImgFB(img, patron) {

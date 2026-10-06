@@ -464,7 +464,7 @@ function renderFitHoy() {
     const it = lg.items[r.ex];
     const rec = store.fit.records[r.ex];
     const dots = it.setsDone.map((d, i) => `<button class="set-dot ${d ? 'done' : ''}" data-ex="${r.ex}" data-set="${i}">${i + 1}</button>`).join('');
-    h += `<div class="card ex-card"><div class="ex-top"><span class="demo">${demoEx(ex)}</span>
+    h += `<div class="card ex-card"><div class="ex-top">${demoEx(ex)}
       <span class="grow"><h3>${esc(ex.nombre)}</h3>
       <p>${esc(ex.musculo)} · ${EQUIPOS[ex.equipo]}${rec && rec.w ? ` · 🏆 ${rec.w}kg` : ''}</p>
       <p class="objetivo">${esc(ex.cue)}</p></span></div>
@@ -553,18 +553,120 @@ function finishFitDay() {
   alert(nuevos.length ? '🎉 ¡Nuevos récords!\n\n' + nuevos.join('\n') : '✅ Entrenamiento guardado. La constancia gana.');
 }
 
+/* ---------- GENERADOR de rutina equilibrada ----------
+   Plantillas por nº de días: cada día una lista de slots; cada slot
+   admite varios músculos (se elige uno al azar). Nunca repite ejercicio
+   en la semana salvo que se agote el pool. Respeta tu equipo. */
+const GEN_SPLITS = {
+  1: [
+    [['Pecho'], ['Espalda'], ['Pierna'], ['Hombro'], ['Brazo'], ['Core']],
+  ],
+  2: [
+    [['Pecho'], ['Espalda'], ['Hombro'], ['Brazo']],
+    [['Pierna'], ['Pierna'], ['Core'], ['Cardio']],
+  ],
+  3: [
+    [['Pecho'], ['Espalda'], ['Hombro'], ['Brazo']],
+    [['Pierna'], ['Pierna'], ['Core'], ['Cardio']],
+    [['Pecho', 'Espalda'], ['Brazo'], ['Pierna'], ['Cardio']],
+  ],
+  4: [
+    [['Pecho'], ['Pecho'], ['Hombro']],
+    [['Pierna'], ['Pierna'], ['Core']],
+    [['Espalda'], ['Espalda'], ['Brazo']],
+    [['Pierna', 'Core'], ['Brazo', 'Hombro'], ['Cardio'], ['Core']],
+  ],
+  5: [
+    [['Pecho'], ['Pecho'], ['Pecho']],
+    [['Pierna'], ['Pierna'], ['Pierna']],
+    [['Espalda'], ['Espalda'], ['Espalda']],
+    [['Hombro'], ['Hombro'], ['Brazo']],
+    [['Cardio'], ['Core'], ['Core', 'Pierna']],
+  ],
+  6: [
+    [['Pecho'], ['Hombro'], ['Brazo']],
+    [['Espalda'], ['Espalda'], ['Brazo']],
+    [['Pierna'], ['Pierna'], ['Pierna']],
+    [['Pecho'], ['Hombro'], ['Brazo']],
+    [['Pierna'], ['Pierna'], ['Core']],
+    [['Cardio'], ['Core'], ['Cardio', 'Pierna']],
+  ],
+  7: [
+    [['Pecho'], ['Hombro'], ['Brazo']],
+    [['Espalda'], ['Espalda'], ['Brazo']],
+    [['Pierna'], ['Pierna'], ['Pierna']],
+    [['Pecho'], ['Hombro'], ['Brazo']],
+    [['Pierna'], ['Pierna'], ['Core']],
+    [['Cardio'], ['Core'], ['Cardio', 'Pierna']],
+    [['Pecho', 'Espalda'], ['Pierna'], ['Brazo'], ['Core']],
+  ],
+};
+function genDefaults() { return { days: ['Lun', 'Mié', 'Vie'], perDay: 4, scope: 'miequipo', mode: 'vacios' }; }
+function genOpts() {
+  if (!store.fit.ui.gen) store.fit.ui.gen = genDefaults();
+  return Object.assign(genDefaults(), store.fit.ui.gen);
+}
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function generateRoutine() {
+  const o = genOpts();
+  const days = DIAS.filter(d => o.days.includes(d));
+  if (!days.length) { alert('Elige al menos un día 🙂'); return null; }
+  const tpl = GEN_SPLITS[Math.min(7, Math.max(1, days.length))];
+  const uses = {}; // veces usado cada ejercicio en la semana: se prefiere lo menos usado
+  const poolFor = ms => shuffle(EJERCICIOS.filter(e => ms.includes(e.musculo) && (o.scope === 'todo' || e.equipo !== 'gym')));
+  const allOk = EJERCICIOS.filter(e => o.scope === 'todo' || e.equipo !== 'gym');
+  const pick = pool => {
+    const cands = pool.length ? pool : allOk;
+    if (!cands.length) return null;
+    let best = Infinity;
+    cands.forEach(e => { best = Math.min(best, uses[e.id] || 0); });
+    const c = cands.filter(e => (uses[e.id] || 0) === best);
+    const e = c[Math.floor(Math.random() * c.length)];
+    uses[e.id] = (uses[e.id] || 0) + 1;
+    return e;
+  };
+  const made = {};
+  days.forEach((d, di) => {
+    if (o.mode === 'vacios' && (store.fit.routine[d] || []).length) { made[d] = 'omitiendo (ya tiene)'; return; }
+    let slots = tpl[di % tpl.length].slice();
+    while (slots.length < o.perDay) slots.push([['Core'], ['Cardio'], ['Brazo'], ['Pierna']][slots.length % 4]);
+    slots = slots.slice(0, o.perDay);
+    const items = [];
+    slots.forEach(s => {
+      const m = s[Math.floor(Math.random() * s.length)];
+      const e = pick(poolFor([m]));
+      if (e) items.push({ ex: e.id, sets: e.sets, reps: e.reps, peso: e.peso });
+    });
+    store.fit.routine[d] = items;
+    made[d] = items.length + ' ejercicios';
+  });
+  save(); renderFit();
+  return made;
+}
+
 /* ---------- RUTINA semanal ---------- */
 function renderFitRutina() {
   const ui = store.fit.ui;
   if (!store.fit.routine[ui.day]) ui.day = diaHoy();
   const items = fitDayItems(ui.day);
-  let h = `<div class="filters day-chips">${DIAS.map(d => `<button class="day-chip ${d === ui.day ? 'active' : ''}" data-day="${d}">${d}<small>${(store.fit.routine[d] || []).length}</small></button>`).join('')}</div>`;
+  const go = Object.assign(genDefaults(), store.fit.ui.gen || {});
+  let h = `<details class="subblock"><summary>🎲 Generar rutina automática</summary><div class="gen-grid">
+    <div class="gen-days">${DIAS.map(d => `<label><input type="checkbox" data-gday="${d}"${go.days.includes(d) ? ' checked' : ''}>${d}</label>`).join('')}</div>
+    <div class="num-row"><label>Por día <select id="genPer">${[3, 4, 5, 6].map(n => `<option value="${n}"${go.perDay === n ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+    <label>Equipo <select id="genScope"><option value="miequipo"${go.scope !== 'todo' ? ' selected' : ''}>Mi equipo</option><option value="todo"${go.scope === 'todo' ? ' selected' : ''}>Todo</option></select></label>
+    <label>Días <select id="genMode"><option value="vacios"${go.mode !== 'todo' ? ' selected' : ''}>Solo vacíos</option><option value="todo"${go.mode === 'todo' ? ' selected' : ''}>Rehacer</option></select></label></div>
+    <button id="btnGen" class="chip-btn">🎲 Generar semana equilibrada</button>
+    <p class="objetivo">Empuje · pierna · tirón · full según tus días. Sin repetir ejercicios en la semana. "Mi equipo" excluye máquinas de gym.</p></div></details>`;
+  h += `<div class="filters day-chips">${DIAS.map(d => `<button class="day-chip ${d === ui.day ? 'active' : ''}" data-day="${d}">${d}<small>${(store.fit.routine[d] || []).length}</small></button>`).join('')}</div>`;
   if (!items.length) h += `<div class="vacio"><p>📭 ${ui.day} sin ejercicios.</p><small>Agrega desde 📚 Ejercicios.</small></div>`;
   h += '<div class="ex-grid">';
   items.forEach((r, i) => {
     const ex = exById(r.ex);
     if (!ex) return;
-    h += `<div class="card ex-card"><div class="ex-top"><span class="demo">${demoEx(ex)}</span>
+    h += `<div class="card ex-card"><div class="ex-top">${demoEx(ex)}
       <span class="grow"><h3>${esc(ex.nombre)}</h3><p>${esc(ex.musculo)} · ${EQUIPOS[ex.equipo]}</p></span>
       <span class="col-btns"><button class="icon-mini" data-mv="${i}|-1">▲</button><button class="icon-mini" data-mv="${i}|1">▼</button><button class="icon-mini" data-del="${i}">🗑</button></span></div>
       <div class="num-row"><label>Series <input type="number" min="1" max="10" value="${r.sets}" data-tsets="${i}"></label>
@@ -592,6 +694,16 @@ function renderFitRutina() {
   upd('treps', (r, v) => r.reps = Math.round(v));
   upd('tpeso', (r, v) => r.peso = v);
   $('btnGoLib').onclick = () => { ui.tab = 'ejercicios'; save(); renderFit(); };
+  const setGen = patch => { store.fit.ui.gen = Object.assign(genOpts(), patch); save(); };
+  box.querySelectorAll('[data-gday]').forEach(c => c.onchange = () => setGen({ days: [...box.querySelectorAll('[data-gday]:checked')].map(x => x.dataset.gday) }));
+  $('genPer').onchange = e => setGen({ perDay: +e.target.value });
+  $('genScope').onchange = e => setGen({ scope: e.target.value });
+  $('genMode').onchange = e => setGen({ mode: e.target.value });
+  $('btnGen').onclick = () => {
+    if (genOpts().mode === 'todo' && !confirm('Se reemplazarán los días elegidos. ¿Generar?')) return;
+    const made = generateRoutine();
+    if (made) alert('🎲 Rutina generada:\n' + Object.keys(made).map(d => `• ${d}: ${made[d]}`).join('\n'));
+  };
 }
 
 /* ---------- BIBLIOTECA ---------- */
@@ -620,7 +732,7 @@ function renderExGrid() {
   list.forEach(e => {
     const card = document.createElement('div');
     card.className = 'card ex-card';
-    card.innerHTML = `<div class="ex-top"><span class="demo">${demoEx(e)}</span>
+    card.innerHTML = `<div class="ex-top">${demoEx(e)}
       <span class="grow"><h3>${esc(e.nombre)}</h3><p>${esc(e.musculo)} · ${EQUIPOS[e.equipo]}</p>
       <p class="objetivo">${e.sets}×${e.reps}${e.unit === 'seg' ? 's' : ''}${e.peso ? ` · ${e.peso}kg` : ''} — ${esc(e.cue)}</p></span></div>
       <div class="num-row"><select data-dsel>${DIAS.map(d => `<option ${store.fit.ui.day === d ? 'selected' : ''}>${d}</option>`).join('')}</select>
@@ -659,7 +771,7 @@ function renderFitRecords() {
       const wTxt = r.w > 0 ? `🏋️ ${r.w}kg` : '🏋️ peso corporal';
       const vTxt = e.unit === 'seg' ? `📦 ${Math.round(r.v)}s en total` : (r.w > 0 ? `📦 ${Math.round(r.v)}kg en total` : `📦 ${Math.round(r.v)} reps en total`);
       const sTxt = r.s ? `${r.s} series · ` : '';
-      h += `<li class="task"><span class="demo sm">${demoEx(e)}</span>
+      h += `<li class="task">${demoEx(e, true)}
         <span class="task-text">${esc(e.nombre)}<br><small class="mensaje">${wTxt} · ${sTxt}🔁 ${r.r}${e.unit === 'seg' ? 's' : ''} máx · ${vTxt} <span class="badge">${esc(r.date || '')}</span></small></span>
         <button class="icon-mini" title="Reiniciar récord" data-recdel="${k}">🗑</button></li>`;
     });

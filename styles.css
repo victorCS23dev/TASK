@@ -193,6 +193,11 @@ body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Robot
 .wrow{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.86rem}
 .wrow:last-child{border-bottom:none}
 .wrow .grow{flex:1;min-width:0}
+.gen-grid{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.gen-days{display:flex;gap:6px;flex-wrap:wrap}
+.gen-days label{display:flex;gap:4px;align-items:center;font-size:.78rem;background:var(--card);border:1px solid var(--border);border-radius:99px;padding:5px 10px;cursor:pointer}
+.gen-days input{accent-color:var(--primary);width:15px;height:15px}
+details.subblock summary{cursor:pointer;font-weight:800;font-size:.85rem}
 .ex-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px}
 .ex-card{padding:12px;display:flex;flex-direction:column;gap:10px}
 .ex-top{display:flex;gap:10px;align-items:flex-start}
